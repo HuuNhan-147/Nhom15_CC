@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 
 const FALLBACK_IMAGE = "https://via.placeholder.com/800x600?text=No+Image";
 
@@ -104,7 +105,162 @@ const normalizeProductList = (payload) => {
   return [];
 };
 
+const getProductId = (product) => product?._id || product?.id;
+const getProductImage = (product) =>
+  product?.image || product?.images?.[0] || FALLBACK_IMAGE;
+const formatPrice = (price) =>
+  `${Number(price || 0).toLocaleString("vi-VN")} VND`;
+const ratingText = (value) => Number(value || 0).toFixed(1);
+
 function ProductDetail() {
+  const { id } = useParams();
+
+  const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const [actionMessage, setActionMessage] = useState("");
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadProduct = async () => {
+      setLoading(true);
+      setError("");
+      setActionMessage("");
+
+      try {
+        const detailResponse = await fetchJsonWithFallback(`/products/${id}`);
+        const detail = normalizeProduct(detailResponse);
+
+        if (isCancelled) {
+          return;
+        }
+
+        if (!detail) {
+          setProduct(null);
+          setRelatedProducts([]);
+          setError("Không tìm thấy sản phẩm");
+          return;
+        }
+
+        setProduct(detail);
+        const maxStock = Math.max(1, Number(detail.stock || 1));
+        setQuantity((prev) =>
+          Math.min(Math.max(1, Number(prev || 1)), maxStock),
+        );
+
+        if (detail.category) {
+          const relatedResponse = await fetchJsonWithFallback("/products", {
+            category: detail.category,
+            status: "available",
+            limit: 4,
+            page: 1,
+          });
+          const related = normalizeProductList(relatedResponse).filter(
+            (item) => getProductId(item) !== getProductId(detail),
+          );
+
+          if (!isCancelled) {
+            setRelatedProducts(related.slice(0, 4));
+          }
+        } else {
+          setRelatedProducts([]);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setProduct(null);
+          setRelatedProducts([]);
+          setError(err.message || "Không thể tải chi tiết sản phẩm");
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadProduct();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [id]);
+
+  const reviews = useMemo(() => {
+    if (Array.isArray(product?.reviews)) {
+      return product.reviews;
+    }
+    return [];
+  }, [product]);
+
+  const handleAddToCart = async () => {
+    if (!product) {
+      return;
+    }
+
+    const currentStock = Number(product.stock || 0);
+    if (currentStock < 1) {
+      setActionMessage("Sản phẩm đang hết hàng");
+      return;
+    }
+
+    const safeQuantity = Math.min(
+      Math.max(1, Number(quantity || 1)),
+      currentStock,
+    );
+    const productId = getProductId(product);
+
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const userId = user?._id || user?.id || user?.userId;
+
+      if (userId && productId) {
+        await fetchJsonWithFallback(
+          `/carts/${userId}/add`,
+          {},
+          {
+            method: "POST",
+            body: JSON.stringify({
+              productId,
+              quantity: safeQuantity,
+            }),
+          },
+        );
+
+        setActionMessage(`Đã thêm ${safeQuantity} sản phẩm vào giỏ hàng`);
+        return;
+      }
+    } catch (error) {
+      // fallback local cart nếu API cart chưa sẵn sàng hoặc thiếu userId
+    }
+
+    try {
+      const localCart = JSON.parse(localStorage.getItem("guest_cart") || "[]");
+      const existingIndex = localCart.findIndex(
+        (item) => item.productId === productId,
+      );
+
+      if (existingIndex >= 0) {
+        localCart[existingIndex].quantity += safeQuantity;
+      } else {
+        localCart.push({
+          productId,
+          name: product.name,
+          price: Number(product.price || 0),
+          image: getProductImage(product),
+          quantity: safeQuantity,
+        });
+      }
+
+      localStorage.setItem("guest_cart", JSON.stringify(localCart));
+      setActionMessage(`Đã thêm ${safeQuantity} sản phẩm vào giỏ hàng tạm`);
+    } catch (error) {
+      setActionMessage("Không thể thêm vào giỏ hàng. Vui lòng thử lại.");
+    }
+  };
+
   if (loading) {
     return (
       <p className="text-center text-gray-600 py-5">
