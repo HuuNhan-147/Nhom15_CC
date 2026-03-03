@@ -213,6 +213,71 @@ export const mockStatistics = {
   bestSeller: mockProducts[1], // iPhone 15 Pro
 };
 
+// Mock Data cho Addresses (Sổ địa chỉ)
+export const mockAddresses = [
+  {
+    id: 1,
+    userId: 1,
+    label: 'Nhà riêng',
+    fullName: 'Nguyễn Văn A',
+    phone: '0901234567',
+    address: '123 Đường Lê Lợi',
+    ward: 'Phường Bến Thành',
+    district: 'Quận 1',
+    city: 'Tp. Hồ Chí Minh',
+    zipCode: '70000',
+    isDefault: true,
+  },
+  {
+    id: 2,
+    userId: 1,
+    label: 'Văn phòng',
+    fullName: 'Nguyễn Văn A',
+    phone: '0909876543',
+    address: '456 Đường Nguyễn Du',
+    ward: 'Phường 7',
+    district: 'Quận 3',
+    city: 'Tp. Hồ Chí Minh',
+    zipCode: '70000',
+    isDefault: false,
+  },
+  {
+    id: 3,
+    userId: 1,
+    label: 'Nhà ba mẹ',
+    fullName: 'Nguyễn Văn B',
+    phone: '0918765432',
+    address: '789 Đường Trần Hưng Đạo',
+    ward: 'Phường 2',
+    district: 'Quận 5',
+    city: 'Tp. Hồ Chí Minh',
+    zipCode: '70000',
+    isDefault: false,
+  },
+];
+
+// Mock Data cho Wishlist (Sản phẩm yêu thích)
+export const mockWishlist = [
+  {
+    id: 1,
+    userId: 1,
+    productId: 2,
+    addedAt: '2024-02-10',
+  },
+  {
+    id: 2,
+    userId: 1,
+    productId: 5,
+    addedAt: '2024-02-18',
+  },
+  {
+    id: 3,
+    userId: 1,
+    productId: 7,
+    addedAt: '2024-03-01',
+  },
+];
+
 // API Service Mock Functions
 export const mockApi = {
   // Products

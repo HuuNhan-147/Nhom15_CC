@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { mockAddresses, mockWishlist, mockProducts } from '../utils/mockData';
 
 function Profile() {
   const { user, updateProfile, changePassword, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState('info'); // 'info' | 'password' | 'orders'
+  const [activeTab, setActiveTab] = useState('info'); // 'info' | 'password' | 'addresses' | 'wishlist'
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -27,6 +28,29 @@ function Profile() {
     newPassword: '',
     confirmNewPassword: '',
   });
+
+  // Addresses
+  const [addresses, setAddresses] = useState([]);
+  const [editingAddress, setEditingAddress] = useState(null); // null | 'new' | addressId
+  const [addressForm, setAddressForm] = useState({
+    label: '', fullName: '', phone: '', address: '', ward: '', district: '', city: '', zipCode: '', isDefault: false,
+  });
+
+  // Wishlist
+  const [wishlist, setWishlist] = useState([]);
+
+  // Load addresses & wishlist
+  useEffect(() => {
+    if (user) {
+      setAddresses(mockAddresses.filter(a => a.userId === user.id));
+      const userWishlist = mockWishlist.filter(w => w.userId === user.id);
+      const wishlistWithProducts = userWishlist.map(w => ({
+        ...w,
+        product: mockProducts.find(p => p.id === w.productId),
+      })).filter(w => w.product);
+      setWishlist(wishlistWithProducts);
+    }
+  }, [user]);
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
@@ -83,6 +107,65 @@ function Profile() {
     navigate('/');
   };
 
+  // === Address handlers ===
+  const handleAddressFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setAddressForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  const handleSaveAddress = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    await new Promise(r => setTimeout(r, 400));
+
+    if (editingAddress === 'new') {
+      const newAddr = { ...addressForm, id: Date.now(), userId: user.id };
+      if (newAddr.isDefault) {
+        setAddresses(prev => prev.map(a => ({ ...a, isDefault: false })).concat(newAddr));
+      } else {
+        setAddresses(prev => [...prev, newAddr]);
+      }
+      setMessage({ type: 'success', text: 'Thêm địa chỉ thành công!' });
+    } else {
+      setAddresses(prev => prev.map(a => {
+        if (a.id === editingAddress) return { ...a, ...addressForm };
+        if (addressForm.isDefault) return { ...a, isDefault: false };
+        return a;
+      }));
+      setMessage({ type: 'success', text: 'Cập nhật địa chỉ thành công!' });
+    }
+
+    setEditingAddress(null);
+    setAddressForm({ label: '', fullName: '', phone: '', address: '', ward: '', district: '', city: '', zipCode: '', isDefault: false });
+    setSaving(false);
+  };
+
+  const handleEditAddress = (addr) => {
+    setEditingAddress(addr.id);
+    setAddressForm({
+      label: addr.label, fullName: addr.fullName, phone: addr.phone,
+      address: addr.address, ward: addr.ward, district: addr.district,
+      city: addr.city, zipCode: addr.zipCode, isDefault: addr.isDefault,
+    });
+    setMessage({ type: '', text: '' });
+  };
+
+  const handleDeleteAddress = (id) => {
+    setAddresses(prev => prev.filter(a => a.id !== id));
+    setMessage({ type: 'success', text: 'Đã xóa địa chỉ!' });
+  };
+
+  const handleSetDefaultAddress = (id) => {
+    setAddresses(prev => prev.map(a => ({ ...a, isDefault: a.id === id })));
+    setMessage({ type: 'success', text: 'Đã đặt làm địa chỉ mặc định!' });
+  };
+
+  // === Wishlist handlers ===
+  const handleRemoveWishlist = (wishlistId) => {
+    setWishlist(prev => prev.filter(w => w.id !== wishlistId));
+    setMessage({ type: 'success', text: 'Đã xóa khỏi danh sách yêu thích!' });
+  };
+
   if (!user) return null;
 
   // Lấy chữ cái đầu tên
@@ -101,6 +184,19 @@ function Profile() {
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
           d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+      </svg>
+    )},
+    { id: 'addresses', label: 'Sổ địa chỉ', icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    )},
+    { id: 'wishlist', label: 'Yêu thích', icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
       </svg>
     )},
   ];
@@ -323,6 +419,285 @@ function Profile() {
                     ) : 'Cập nhật mật khẩu'}
                   </button>
                 </form>
+              </div>
+            )}
+
+            {/* === TAB: Sổ địa chỉ === */}
+            {activeTab === 'addresses' && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-bold text-gray-800">Sổ địa chỉ</h2>
+                  {editingAddress === null && (
+                    <button onClick={() => {
+                      setEditingAddress('new');
+                      setAddressForm({ label: '', fullName: '', phone: '', address: '', ward: '', district: '', city: '', zipCode: '', isDefault: false });
+                      setMessage({ type: '', text: '' });
+                    }}
+                      className="px-4 py-2 text-sm font-medium text-green-600 border border-green-300 rounded-lg hover:bg-green-50 transition-colors flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Thêm địa chỉ
+                    </button>
+                  )}
+                </div>
+
+                {/* Address Form (Add/Edit) */}
+                {editingAddress !== null && (
+                  <form onSubmit={handleSaveAddress} className="mb-6 p-5 bg-gray-50 rounded-xl border border-gray-200">
+                    <h3 className="text-sm font-bold text-gray-700 mb-4">
+                      {editingAddress === 'new' ? '➕ Thêm địa chỉ mới' : '✏️ Chỉnh sửa địa chỉ'}
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Tên gợi nhớ</label>
+                        <input type="text" name="label" value={addressForm.label} onChange={handleAddressFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                          placeholder="VD: Nhà riêng, Văn phòng..." required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Họ và tên người nhận</label>
+                        <input type="text" name="fullName" value={addressForm.fullName} onChange={handleAddressFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                          placeholder="Nguyễn Văn A" required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Số điện thoại</label>
+                        <input type="tel" name="phone" value={addressForm.phone} onChange={handleAddressFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                          placeholder="0901234567" required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Địa chỉ</label>
+                        <input type="text" name="address" value={addressForm.address} onChange={handleAddressFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                          placeholder="Số nhà, đường..." required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Phường/Xã</label>
+                        <input type="text" name="ward" value={addressForm.ward} onChange={handleAddressFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                          placeholder="Phường Bến Nghé" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Quận/Huyện</label>
+                        <input type="text" name="district" value={addressForm.district} onChange={handleAddressFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                          placeholder="Quận 1" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Tỉnh/Thành phố</label>
+                        <input type="text" name="city" value={addressForm.city} onChange={handleAddressFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                          placeholder="Tp. Hồ Chí Minh" required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Mã bưu điện</label>
+                        <input type="text" name="zipCode" value={addressForm.zipCode} onChange={handleAddressFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                          placeholder="70000" />
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 mt-4 cursor-pointer">
+                      <input type="checkbox" name="isDefault" checked={addressForm.isDefault} onChange={handleAddressFormChange}
+                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
+                      <span className="text-sm text-gray-700">Đặt làm địa chỉ mặc định</span>
+                    </label>
+                    <div className="flex gap-3 mt-5">
+                      <button type="submit" disabled={saving}
+                        className="px-5 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 transition-all disabled:opacity-50 text-sm flex items-center gap-2">
+                        {saving ? (
+                          <>
+                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            Đang lưu...
+                          </>
+                        ) : 'Lưu địa chỉ'}
+                      </button>
+                      <button type="button" onClick={() => setEditingAddress(null)}
+                        className="px-5 py-2 border border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm">
+                        Huỷ bỏ
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Address List */}
+                {addresses.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <svg className="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <p className="font-medium">Chưa có địa chỉ nào</p>
+                    <p className="text-sm mt-1">Thêm địa chỉ giao hàng để đặt hàng nhanh hơn</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {addresses.map(addr => (
+                      <div key={addr.id}
+                        className={`p-4 rounded-xl border-2 transition-colors ${
+                          addr.isDefault ? 'border-green-300 bg-green-50/50' : 'border-gray-200 hover:border-gray-300'
+                        }`}>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-bold text-sm text-gray-800">{addr.label}</span>
+                              {addr.isDefault && (
+                                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                                  Mặc định
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-700 font-medium">{addr.fullName}</p>
+                            <p className="text-sm text-gray-500">{addr.phone}</p>
+                            <p className="text-sm text-gray-500 mt-1">
+                              {addr.address}
+                              {addr.ward && `, ${addr.ward}`}
+                              {addr.district && `, ${addr.district}`}
+                              {addr.city && `, ${addr.city}`}
+                              {addr.zipCode && ` - ${addr.zipCode}`}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 ml-3 flex-shrink-0">
+                            {!addr.isDefault && (
+                              <button onClick={() => handleSetDefaultAddress(addr.id)}
+                                title="Đặt mặc định"
+                                className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </button>
+                            )}
+                            <button onClick={() => handleEditAddress(addr)}
+                              title="Chỉnh sửa"
+                              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            {!addr.isDefault && (
+                              <button onClick={() => handleDeleteAddress(addr.id)}
+                                title="Xoá"
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* === TAB: Yêu thích === */}
+            {activeTab === 'wishlist' && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-bold text-gray-800">Sản phẩm yêu thích</h2>
+                  <span className="text-sm text-gray-500">{wishlist.length} sản phẩm</span>
+                </div>
+
+                {wishlist.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <svg className="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    <p className="font-medium">Chưa có sản phẩm yêu thích</p>
+                    <p className="text-sm mt-1">Hãy thêm sản phẩm vào danh sách để theo dõi</p>
+                    <Link to="/products"
+                      className="inline-block mt-4 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 transition-all text-sm">
+                      Khám phá sản phẩm
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {wishlist.map(item => {
+                      const product = mockProducts.find(p => p._id === item.productId || p.id === item.productId);
+                      if (!product) return null;
+                      return (
+                        <div key={item.id} className="flex gap-3 p-3 rounded-xl border border-gray-200 hover:border-green-300 hover:shadow-sm transition-all group">
+                          {/* Product Image */}
+                          <Link to={`/products/${product._id || product.id}`} className="flex-shrink-0">
+                            <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden">
+                              {product.image || product.images?.[0] ? (
+                                <img src={product.image || product.images[0]} alt={product.name}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </Link>
+
+                          {/* Product Info */}
+                          <div className="flex-1 min-w-0">
+                            <Link to={`/products/${product._id || product.id}`}
+                              className="text-sm font-semibold text-gray-800 hover:text-green-600 transition-colors line-clamp-2">
+                              {product.name}
+                            </Link>
+
+                            {/* Rating */}
+                            {product.rating && (
+                              <div className="flex items-center gap-1 mt-1">
+                                <div className="flex">
+                                  {[1, 2, 3, 4, 5].map(star => (
+                                    <svg key={star} className={`w-3.5 h-3.5 ${star <= Math.round(product.rating) ? 'text-yellow-400' : 'text-gray-200'}`}
+                                      fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                  ))}
+                                </div>
+                                <span className="text-xs text-gray-400">({product.rating})</span>
+                              </div>
+                            )}
+
+                            {/* Price */}
+                            <div className="mt-1">
+                              <span className="text-base font-bold text-green-600">
+                                {(product.price || 0).toLocaleString('vi-VN')}₫
+                              </span>
+                              {product.originalPrice && product.originalPrice > product.price && (
+                                <span className="text-xs text-gray-400 line-through ml-2">
+                                  {product.originalPrice.toLocaleString('vi-VN')}₫
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-2 mt-2">
+                              <Link to={`/products/${product._id || product.id}`}
+                                className="px-3 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-lg hover:bg-green-100 transition-colors">
+                                Xem chi tiết
+                              </Link>
+                              <button onClick={() => handleRemoveWishlist(item.id)}
+                                className="px-3 py-1 bg-red-50 text-red-500 text-xs font-medium rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Bỏ thích
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
