@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .btn {
+    @apply px-6 py-3 rounded-md font-medium transition-colors duration-300 inline-block;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-green-600;
+  }
+
+  .btn-large {
+    @apply w-full py-4 text-lg;
+  }
+
+  .btn-block {
+    @apply w-full;
+  }
+}
