@@ -1,32 +1,46 @@
 /**
  * API Service - Kết nối với Backend Server
  * 
+ * Hỗ trợ JWT Authentication
+ * 
  * Cách sử dụng:
  * import api from '../services/api';
- * 
- * Test môi trường:
- * API_URL hiện tại: http://localhost:5000 (có thể thay đổi)
+ * api.setToken(token);  // Đặt token
+ * await api.login(email, password);
+ * await api.getProducts();
  */
 
 class ApiService {
   constructor() {
     // Thay đổi URL khi deploy
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
     this.token = localStorage.getItem('token');
   }
 
-  // Thiết lập header
-  getHeaders() {
-    return {
-      'Content-Type': 'application/json',
-      ...(this.token && { 'Authorization': `Bearer ${this.token}` })
-    };
+  // Đặt token mới
+  setToken(token) {
+    this.token = token;
+    if (token) {
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
+    }
   }
 
-  // Hàm chung để fetch
+  // Thiết lập header với JWT token
+  getHeaders(isFormData = false) {
+    const headers = {
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(this.token && { 'Authorization': `Bearer ${this.token}` })
+    };
+    return headers;
+  }
+
+  // Hàm chung để fetch với error handling
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    const headers = this.getHeaders();
+    const isFormData = options.body instanceof FormData;
+    const headers = this.getHeaders(isFormData);
 
     try {
       const response = await fetch(url, {
@@ -34,15 +48,51 @@ class ApiService {
         ...options,
       });
 
+      const data = await response.json();
+
+      // Nếu response không ok
       if (!response.ok) {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        throw {
+          status: response.status,
+          message: data.message || `API Error: ${response.status}`,
+          data: data
+        };
       }
 
-      return await response.json();
+      return data;
     } catch (error) {
-      console.error('API Request Error:', error);
+      // Re-throw lỗi để có thể handle ở AuthContext
       throw error;
     }
+  }
+
+  // ==================== AUTHENTICATION ====================
+  async login(email, password) {
+    return this.request('/users/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+  }
+
+  async register(fullName, email, password, phone) {
+    return this.request('/users/register', {
+      method: 'POST',
+      body: JSON.stringify({ fullName, email, password, phone })
+    });
+  }
+
+  async logout(refreshToken) {
+    return this.request('/users/logout', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken })
+    });
+  }
+
+  async refreshToken(refreshToken) {
+    return this.request('/users/refresh-token', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken })
+    });
   }
 
   // ==================== PRODUCTS ====================
@@ -56,14 +106,47 @@ class ApiService {
   }
 
   async getProductsByCategory(category) {
-    return this.request(`/products?category=${category}`);
+    return this.request(`/products/category/${category}`);
   }
 
   async searchProducts(keyword) {
     return this.request(`/products/search?keyword=${keyword}`);
   }
 
+  // Admin: Tạo sản phẩm
+  async createProduct(productData) {
+    return this.request('/products', {
+      method: 'POST',
+      body: JSON.stringify(productData)
+    });
+  }
+
+  // Admin: Cập nhật sản phẩm
+  async updateProduct(id, productData) {
+    return this.request(`/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(productData)
+    });
+  }
+
+  // Admin: Xóa sản phẩm
+  async deleteProduct(id) {
+    return this.request(`/products/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
   // ==================== USERS ====================
+  async getMe() {
+    return this.request('/users/me');
+  }
+
+  // Admin: Lấy tất cả users
+  async getAllUsers(filters = {}) {
+    const query = new URLSearchParams(filters).toString();
+    return this.request(`/users${query ? '?' + query : ''}`);
+  }
+
   async getUser(id) {
     return this.request(`/users/${id}`);
   }
@@ -75,148 +158,106 @@ class ApiService {
     });
   }
 
-  // ==================== AUTHENTICATION ====================
-  async login(email, password) {
-    const response = await this.request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password })
-    });
-
-    if (response.token) {
-      this.token = response.token;
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-    }
-
-    return response;
-  }
-
-  async register(fullName, email, password) {
-    return this.request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ fullName, email, password })
-    });
-  }
-
-  async logout() {
-    this.token = null;
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-  }
-
-  // ==================== CART ====================
-  async getCart() {
-    return this.request('/cart');
-  }
-
-  async addToCart(productId, quantity = 1) {
-    return this.request('/cart', {
-      method: 'POST',
-      body: JSON.stringify({ productId, quantity })
-    });
-  }
-
-  async updateCartItem(itemId, quantity) {
-    return this.request(`/cart/${itemId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ quantity })
-    });
-  }
-
-  async removeFromCart(itemId) {
-    return this.request(`/cart/${itemId}`, {
+  // Admin: Xóa user
+  async deleteUser(id) {
+    return this.request(`/users/${id}`, {
       method: 'DELETE'
     });
   }
 
-  async clearCart() {
-    return this.request('/cart', {
+  async changePassword(id, passwordData) {
+    return this.request(`/users/${id}/change-password`, {
+      method: 'POST',
+      body: JSON.stringify(passwordData)
+    });
+  }
+
+  // ==================== CART ====================
+  async getCart(userId) {
+    return this.request(`/carts/${userId}`);
+  }
+
+  async addToCart(userId, productData) {
+    return this.request(`/carts/${userId}/add`, {
+      method: 'POST',
+      body: JSON.stringify(productData)
+    });
+  }
+
+  async updateCartItem(userId, updateData) {
+    return this.request(`/carts/${userId}/update`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData)
+    });
+  }
+
+  async removeFromCart(userId, productId) {
+    return this.request(`/carts/${userId}/items/${productId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async clearCart(userId) {
+    return this.request(`/carts/${userId}/clear`, {
       method: 'DELETE'
     });
   }
 
   // ==================== ORDERS ====================
-  async getOrders(userId) {
-    return this.request(`/orders?userId=${userId}`);
+  async getMyOrders(userId) {
+    return this.request(`/orders/user/${userId}`);
+  }
+
+  // Admin: Lấy tất cả orders
+  async getAllOrders(filters = {}) {
+    const query = new URLSearchParams(filters).toString();
+    return this.request(`/orders${query ? '?' + query : ''}`);
   }
 
   async getOrderById(orderId) {
     return this.request(`/orders/${orderId}`);
   }
 
-  async createOrder(orderData) {
-    return this.request('/orders', {
+  async createOrder(userId, orderData) {
+    return this.request(`/orders/${userId}`, {
       method: 'POST',
       body: JSON.stringify(orderData)
     });
   }
 
-  async updateOrder(orderId, updateData) {
-    return this.request(`/orders/${orderId}`, {
+  // Admin: Cập nhật trạng thái order
+  async updateOrderStatus(orderId, status) {
+    return this.request(`/orders/${orderId}/status`, {
       method: 'PUT',
-      body: JSON.stringify(updateData)
+      body: JSON.stringify({ status })
+    });
+  }
+
+  // Admin: Cập nhật trạng thái thanh toán
+  async updatePaymentStatus(orderId, paymentStatus) {
+    return this.request(`/orders/${orderId}/payment-status`, {
+      method: 'PUT',
+      body: JSON.stringify({ paymentStatus })
     });
   }
 
   async cancelOrder(orderId) {
     return this.request(`/orders/${orderId}/cancel`, {
-      method: 'POST'
+      method: 'PUT'
     });
   }
 
   // ==================== REVIEWS ====================
-  async getProductReviews(productId) {
-    return this.request(`/reviews?productId=${productId}`);
-  }
-
-  async createReview(productId, reviewData) {
-    return this.request('/reviews', {
+  async addProductReview(productId, reviewData) {
+    return this.request(`/products/${productId}/reviews`, {
       method: 'POST',
-      body: JSON.stringify({ productId, ...reviewData })
-    });
-  }
-
-  async updateReview(reviewId, reviewData) {
-    return this.request(`/reviews/${reviewId}`, {
-      method: 'PUT',
       body: JSON.stringify(reviewData)
     });
   }
 
-  async deleteReview(reviewId) {
-    return this.request(`/reviews/${reviewId}`, {
-      method: 'DELETE'
-    });
-  }
-
-  // ==================== CATEGORIES ====================
-  async getCategories() {
-    return this.request('/categories');
-  }
-
-  async getCategoryById(id) {
-    return this.request(`/categories/${id}`);
-  }
-
-  // ==================== PAYMENTS ====================
-  async processPayment(paymentData) {
-    return this.request('/payments', {
-      method: 'POST',
-      body: JSON.stringify(paymentData)
-    });
-  }
-
-  async getPaymentStatus(paymentId) {
-    return this.request(`/payments/${paymentId}`);
-  }
-
   // ==================== STATISTICS ====================
-  async getStatistics() {
+  async getDashboardStats() {
     return this.request('/statistics');
-  }
-
-  async getSalesReport(startDate, endDate) {
-    return this.request(`/statistics/sales?start=${startDate}&end=${endDate}`);
   }
 
   // ==================== UPLOAD ====================
@@ -224,11 +265,14 @@ class ApiService {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${this.baseURL}/upload`, {
+    const url = `${this.baseURL}/upload`;
+    const headers = {
+      'Authorization': this.token ? `Bearer ${this.token}` : ''
+    };
+
+    const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Authorization': this.token ? `Bearer ${this.token}` : ''
-      },
+      headers,
       body: formData
     });
 
@@ -244,18 +288,6 @@ class ApiService {
 const api = new ApiService();
 
 export default api;
-
-/**
- * Cách sử dụng API Service:
- * 
- * 1. Import:
- *    import api from '../services/api';
- * 
- * 2. Sử dụng trong component:
- *    
- *    useEffect(() => {
- *      api.getProducts()
- *        .then(data => setProducts(data))
  *        .catch(error => console.error('Error:', error));
  *    }, []);
  * 

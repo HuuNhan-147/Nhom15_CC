@@ -60,6 +60,62 @@ class UserController {
     }
   }
 
+
+  // Refresh access token
+  async refreshToken(req, res) {
+    try {
+      const { refreshToken } = req.body;
+      if (!refreshToken) {
+        return res.status(400).json({ success: false, message: "Yêu cầu refresh token" });
+      }
+      const newToken = await userService.refreshAccessToken(refreshToken);
+      res.status(200).json({ success: true, token: newToken });
+    } catch (error) {
+      res.status(401).json({ success: false, message: error.message });
+    }
+  }
+
+  // Logout (revoke refresh token)
+  async logout(req, res) {
+    try {
+      const { refreshToken } = req.body;
+      if (refreshToken) {
+        await userService.revokeRefreshToken(refreshToken);
+      }
+      res.status(200).json({ success: true, message: "Đã đăng xuất" });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
+  // Gửi email quên mật khẩu
+  async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ success: false, message: "Vui lòng nhập email" });
+      }
+      const result = await userService.createPasswordResetToken(email);
+      res.status(200).json({ success: true, message: result.message });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
+  // Reset mật khẩu
+  async resetPassword(req, res) {
+    try {
+      const { token, newPassword } = req.body;
+      if (!token || !newPassword) {
+        return res.status(400).json({ success: false, message: "Token và mật khẩu mới là bắt buộc" });
+      }
+      const result = await userService.resetPassword(token, newPassword);
+      res.status(200).json({ success: true, message: result.message });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
   // Lấy tất cả người dùng
   async getAllUsers(req, res) {
     try {
@@ -81,7 +137,7 @@ class UserController {
     }
   }
 
-  // Lấy thông tin cá nhân
+  // Lấy thông tin cá nhân theo ID (dành cho admin hoặc mục đích admin)
   async getProfile(req, res) {
     try {
       const userId = req.params.id;
@@ -100,10 +156,37 @@ class UserController {
     }
   }
 
-  // Cập nhật thông tin cá nhân
+  // Lấy profile của chính người dùng dựa trên token
+  async getMe(req, res) {
+    try {
+      const userId = req.user.userId;
+      const user = await userService.getUserById(userId);
+
+      res.status(200).json({
+        success: true,
+        message: "Lấy thông tin người dùng thành công",
+        data: user,
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  // Cập nhật thông tin cá nhân (chỉ chính chủ hoặc admin)
   async updateProfile(req, res) {
     try {
       const userId = req.params.id;
+      // quyền: chính chủ hoặc admin
+      if (req.user.userId !== userId && req.user.role !== "admin") {
+        return res.status(403).json({
+          success: false,
+          message: "Không có quyền cập nhật người dùng khác",
+        });
+      }
+
       const user = await userService.updateUser(userId, req.body);
 
       res.status(200).json({
@@ -119,10 +202,17 @@ class UserController {
     }
   }
 
-  // Xóa người dùng
+  // Xóa người dùng (admin hoặc chính chủ)
   async deleteUser(req, res) {
     try {
       const userId = req.params.id;
+      if (req.user.userId !== userId && req.user.role !== "admin") {
+        return res.status(403).json({
+          success: false,
+          message: "Không có quyền xóa người dùng khác",
+        });
+      }
+
       await userService.deleteUser(userId);
 
       res.status(200).json({
