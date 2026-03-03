@@ -138,7 +138,8 @@ class ProductController {
     }
   }
 
-  // Tìm kiếm sản phẩm
+  // Tìm kiếm sản 
+  // Author: Khang - Backend Developer
   async searchProducts(req, res) {
     try {
       const searchTerm = req.query.q;
