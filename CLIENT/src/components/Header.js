@@ -14,6 +14,7 @@ function Header() {
           <Link to="/" className="text-white hover:text-primary transition-colors">Trang chủ</Link>
           <Link to="/products" className="text-white hover:text-primary transition-colors">Sản phẩm</Link>
           <Link to="/cart" className="text-white hover:text-primary transition-colors">Giỏ hàng</Link>
+          <Link to="/orders" className="text-white hover:text-primary transition-colors">Đơn hàng</Link>
           <Link to="/login" className="text-white hover:text-primary transition-colors">Đăng nhập</Link>
           <Link to="/register" className="text-white hover:text-primary transition-colors">Đăng ký</Link>
         </nav>
