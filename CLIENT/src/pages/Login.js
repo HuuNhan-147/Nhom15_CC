@@ -137,6 +137,13 @@ function Login() {
                 </div>
               </div>
 
+              {/* Forgot password */}
+              <div className="flex justify-end">
+                <Link to="/forgot-password" className="text-sm text-gray-500 hover:text-green-600 transition-colors">
+                  Quên mật khẩu?
+                </Link>
+              </div>
+
               {/* Submit */}
               <button
                 type="submit"

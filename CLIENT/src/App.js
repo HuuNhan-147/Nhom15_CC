@@ -15,6 +15,7 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
 import Profile from './pages/Profile';
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
               {/* Auth Routes — chỉ dành cho khách */}
               <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
               <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+              <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
 
               {/* Protected Routes — yêu cầu đăng nhập */}
               <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
