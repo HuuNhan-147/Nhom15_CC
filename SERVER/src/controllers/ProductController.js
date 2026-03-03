@@ -17,7 +17,7 @@ class ProductController {
 
       res.status(201).json({
         success: true,
-        message: "Tạo sản phẩm thành công",
+        message: "Chào mừng bạn đã tạo sản phẩm thành công!",
         data: product,
       });
     } catch (error) {
@@ -45,7 +45,7 @@ class ProductController {
 
       res.status(200).json({
         success: true,
-        message: "Lấy danh sách sản phẩm thành công",
+        message: "Chức mừng bạn đã lấy sản phẩm thành công!",
         data: result,
       });
     } catch (error) {
