@@ -1,7 +1,6 @@
 const orderService = require("../services/OrderService");
 
 class OrderController {
-  // Tạo đơn hàng
   async createOrder(req, res) {
     try {
       const userId = req.params.userId;
