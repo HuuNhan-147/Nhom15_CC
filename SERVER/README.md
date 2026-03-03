@@ -73,6 +73,16 @@ Tao file `.env` từ `.env.example`:
 PORT=5000
 NODE_ENV=development
 DB_PATH=./database.db
+# JWT và refresh token
+JWT_SECRET=...
+JWT_EXPIRES_IN=7d
+
+# Email (cho tính năng quên mật khẩu)
+EMAIL_SERVICE=gmail
+EMAIL_USER=your@gmail.com
+EMAIL_PASS=app-password-or-token
+EMAIL_FROM="no-reply@yourdomain.com"
+CLIENT_URL=http://localhost:3000
 ```
 
 ### 3. Khởi Động Server
@@ -92,12 +102,15 @@ Server sẽ chạy tại: http://localhost:5000
 ### Users (Người Dùng)
 
 ```
-POST   /api/v1/users/register     - Đăng ký người dùng
-POST   /api/v1/users/login        - Đăng nhập
-GET    /api/v1/users              - Lấy tất cả người dùng
-GET    /api/v1/users/:id          - Lấy người dùng theo ID
-PUT    /api/v1/users/:id          - Cập nhật người dùng
-DELETE /api/v1/users/:id          - Xóa người dùng
+POST   /api/v1/users/register          - Đăng ký người dùng
+POST   /api/v1/users/login             - Đăng nhập
+POST   /api/v1/users/forgot-password   - Yêu cầu email đặt lại mật khẩu
+POST   /api/v1/users/reset-password    - Reset mật khẩu (token + mật khẩu mới)
+GET    /api/v1/users/me                - Lấy profile người dùng hiện tại (xác thực)
+GET    /api/v1/users                   - Lấy tất cả người dùng (admin)
+GET    /api/v1/users/:id               - Lấy người dùng theo ID (admin)
+PUT    /api/v1/users/:id               - Cập nhật người dùng (chủ nhân hoặc admin)
+DELETE /api/v1/users/:id               - Xóa người dùng (chủ nhân hoặc admin)
 ```
 
 ### Products (Sản Phẩm)

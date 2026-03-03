@@ -6,6 +6,8 @@ const { verifyToken, isAdmin } = require("../middleware/authMiddleware");
 // Auth routes
 router.post("/register", (req, res) => userController.register(req, res));
 router.post("/login", (req, res) => userController.login(req, res));
+router.post("/forgot-password", (req, res) => userController.forgotPassword(req, res));
+router.post("/reset-password", (req, res) => userController.resetPassword(req, res));
 
 // User routes
 // trang cá nhân của chính người dùng, cần xác thực

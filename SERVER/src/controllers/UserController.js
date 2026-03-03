@@ -60,6 +60,35 @@ class UserController {
     }
   }
 
+
+  // Gửi email quên mật khẩu
+  async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ success: false, message: "Vui lòng nhập email" });
+      }
+      const result = await userService.createPasswordResetToken(email);
+      res.status(200).json({ success: true, message: result.message });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
+  // Reset mật khẩu
+  async resetPassword(req, res) {
+    try {
+      const { token, newPassword } = req.body;
+      if (!token || !newPassword) {
+        return res.status(400).json({ success: false, message: "Token và mật khẩu mới là bắt buộc" });
+      }
+      const result = await userService.resetPassword(token, newPassword);
+      res.status(200).json({ success: true, message: result.message });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
   // Lấy tất cả người dùng
   async getAllUsers(req, res) {
     try {
