@@ -16,6 +16,94 @@ const API_BASE_CANDIDATES = Array.from(
   ),
 );
 
+const buildQuery = (params = {}) => {
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      query.append(key, value);
+    }
+  });
+
+  return query.toString();
+};
+
+const fetchJsonWithFallback = async (path, queryParams = {}, options = {}) => {
+  const query = buildQuery(queryParams);
+  const suffix = `${path}${query ? `?${query}` : ""}`;
+
+  let lastError = null;
+
+  for (const base of API_BASE_CANDIDATES) {
+    const url = `${base}${suffix}`;
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        },
+        ...options,
+      });
+
+      if (!response.ok) {
+        lastError = new Error(
+          `API Error ${response.status}: ${response.statusText}`,
+        );
+        continue;
+      }
+
+      const text = await response.text();
+      return text ? JSON.parse(text) : {};
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("Không thể kết nối API sản phẩm");
+};
+
+const normalizeProduct = (payload) => {
+  if (!payload) {
+    return null;
+  }
+
+  if (payload?.data && !Array.isArray(payload.data)) {
+    if (payload.data.products?.[0]) {
+      return payload.data.products[0];
+    }
+    return payload.data;
+  }
+
+  if (!Array.isArray(payload)) {
+    return payload;
+  }
+
+  return null;
+};
+
+const normalizeProductList = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  const root = payload?.data ?? payload;
+
+  if (Array.isArray(root)) {
+    return root;
+  }
+
+  if (Array.isArray(root?.products)) {
+    return root.products;
+  }
+
+  if (Array.isArray(payload?.products)) {
+    return payload.products;
+  }
+
+  return [];
+};
+
 function ProductDetail() {
   if (loading) {
     return (
