@@ -81,7 +81,7 @@ class UserController {
     }
   }
 
-  // Lấy thông tin cá nhân
+  // Lấy thông tin cá nhân theo ID (dành cho admin hoặc mục đích admin)
   async getProfile(req, res) {
     try {
       const userId = req.params.id;
@@ -100,10 +100,37 @@ class UserController {
     }
   }
 
-  // Cập nhật thông tin cá nhân
+  // Lấy profile của chính người dùng dựa trên token
+  async getMe(req, res) {
+    try {
+      const userId = req.user.userId;
+      const user = await userService.getUserById(userId);
+
+      res.status(200).json({
+        success: true,
+        message: "Lấy thông tin người dùng thành công",
+        data: user,
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  // Cập nhật thông tin cá nhân (chỉ chính chủ hoặc admin)
   async updateProfile(req, res) {
     try {
       const userId = req.params.id;
+      // quyền: chính chủ hoặc admin
+      if (req.user.userId !== userId && req.user.role !== "admin") {
+        return res.status(403).json({
+          success: false,
+          message: "Không có quyền cập nhật người dùng khác",
+        });
+      }
+
       const user = await userService.updateUser(userId, req.body);
 
       res.status(200).json({
@@ -119,10 +146,17 @@ class UserController {
     }
   }
 
-  // Xóa người dùng
+  // Xóa người dùng (admin hoặc chính chủ)
   async deleteUser(req, res) {
     try {
       const userId = req.params.id;
+      if (req.user.userId !== userId && req.user.role !== "admin") {
+        return res.status(403).json({
+          success: false,
+          message: "Không có quyền xóa người dùng khác",
+        });
+      }
+
       await userService.deleteUser(userId);
 
       res.status(200).json({
