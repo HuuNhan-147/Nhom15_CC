@@ -17,7 +17,6 @@ const API_BASE_CANDIDATES = Array.from(
   ),
 );
 
-<<<<<<< HEAD
 const buildQuery = (params = {}) => {
   const query = new URLSearchParams();
 
@@ -113,8 +112,6 @@ const formatPrice = (price) =>
   `${Number(price || 0).toLocaleString("vi-VN")} VND`;
 const ratingText = (value) => Number(value || 0).toFixed(1);
 
-=======
->>>>>>> parent of 67fb7f0 (feat: add fetch helper with options and product normalizers)
 function ProductDetail() {
   const { id } = useParams();
 
