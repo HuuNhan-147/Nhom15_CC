@@ -76,6 +76,8 @@ DB_PATH=./database.db
 # JWT và refresh token
 JWT_SECRET=...
 JWT_EXPIRES_IN=7d
+REFRESH_TOKEN_SECRET=...
+REFRESH_TOKEN_EXPIRES_IN=30d
 
 # Email (cho tính năng quên mật khẩu)
 EMAIL_SERVICE=gmail
@@ -103,7 +105,9 @@ Server sẽ chạy tại: http://localhost:5000
 
 ```
 POST   /api/v1/users/register          - Đăng ký người dùng
-POST   /api/v1/users/login             - Đăng nhập
+POST   /api/v1/users/login             - Đăng nhập (trả về access + refresh token)
+POST   /api/v1/users/refresh-token     - Lấy access token mới bằng refresh token
+POST   /api/v1/users/logout            - Đăng xuất (thu hồi refresh token)
 POST   /api/v1/users/forgot-password   - Yêu cầu email đặt lại mật khẩu
 POST   /api/v1/users/reset-password    - Reset mật khẩu (token + mật khẩu mới)
 GET    /api/v1/users/me                - Lấy profile người dùng hiện tại (xác thực)

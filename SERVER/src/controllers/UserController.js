@@ -61,6 +61,33 @@ class UserController {
   }
 
 
+  // Refresh access token
+  async refreshToken(req, res) {
+    try {
+      const { refreshToken } = req.body;
+      if (!refreshToken) {
+        return res.status(400).json({ success: false, message: "Yêu cầu refresh token" });
+      }
+      const newToken = await userService.refreshAccessToken(refreshToken);
+      res.status(200).json({ success: true, token: newToken });
+    } catch (error) {
+      res.status(401).json({ success: false, message: error.message });
+    }
+  }
+
+  // Logout (revoke refresh token)
+  async logout(req, res) {
+    try {
+      const { refreshToken } = req.body;
+      if (refreshToken) {
+        await userService.revokeRefreshToken(refreshToken);
+      }
+      res.status(200).json({ success: true, message: "Đã đăng xuất" });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
   // Gửi email quên mật khẩu
   async forgotPassword(req, res) {
     try {

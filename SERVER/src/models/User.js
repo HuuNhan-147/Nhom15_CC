@@ -48,6 +48,8 @@ const userSchema = new mongoose.Schema(
     // reset password token and expiry
     resetPasswordToken: String,
     resetPasswordExpires: Date,
+    // list of valid refresh tokens
+    refreshTokens: [String],
     createdAt: {
       type: Date,
       default: Date.now,

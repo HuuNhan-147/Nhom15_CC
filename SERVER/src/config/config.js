@@ -10,6 +10,10 @@ module.exports = {
     secret: process.env.JWT_SECRET || "your-secret-key-change-in-production",
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   },
+  refreshToken: {
+    secret: process.env.REFRESH_TOKEN_SECRET || "your-refresh-secret",
+    expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || "30d",
+  },
   email: {
     service: process.env.EMAIL_SERVICE || "gmail",
     user: process.env.EMAIL_USER || "",

@@ -62,6 +62,16 @@ class UserService {
         { expiresIn: config.jwt.expiresIn },
       );
       // generate refresh token
+      const refreshToken = jwt.sign(
+        { userId: user._id },
+        config.refreshToken.secret,
+        { expiresIn: config.refreshToken.expiresIn },
+      );
+
+      // store refresh token in user document
+      user.refreshTokens = user.refreshTokens || [];
+      user.refreshTokens.push(refreshToken);
+      await user.save();
 
       const userResponse = user.toObject();
       delete userResponse.password;
@@ -69,6 +79,7 @@ class UserService {
       return {
         user: userResponse,
         token,
+        refreshToken,
       };
     } catch (error) {
       throw new Error(`Lỗi đăng nhập: ${error.message}`);
@@ -76,6 +87,48 @@ class UserService {
   }
 
   // ----- refresh token helpers -----
+  async generateRefreshToken(userId) {
+    const refreshToken = jwt.sign({ userId }, config.refreshToken.secret, {
+      expiresIn: config.refreshToken.expiresIn,
+    });
+    const user = await User.findById(userId);
+    user.refreshTokens = user.refreshTokens || [];
+    user.refreshTokens.push(refreshToken);
+    await user.save();
+    return refreshToken;
+  }
+
+  async refreshAccessToken(refreshToken) {
+    try {
+      const payload = jwt.verify(refreshToken, config.refreshToken.secret);
+      const user = await User.findById(payload.userId);
+      if (!user || !user.refreshTokens.includes(refreshToken)) {
+        throw new Error("Refresh token không hợp lệ");
+      }
+      const newToken = jwt.sign(
+        { userId: user._id, email: user.email, role: user.role },
+        config.jwt.secret,
+        { expiresIn: config.jwt.expiresIn },
+      );
+      return newToken;
+    } catch (err) {
+      throw new Error("Refresh token không hợp lệ");
+    }
+  }
+
+  async revokeRefreshToken(refreshToken) {
+    try {
+      const payload = jwt.verify(refreshToken, config.refreshToken.secret);
+      const user = await User.findById(payload.userId);
+      if (user) {
+        user.refreshTokens = (user.refreshTokens || []).filter(t => t !== refreshToken);
+        await user.save();
+      }
+    } catch (err) {
+      // ignore invalid token
+    }
+  }
+
   // ----- password reset helpers -----
   async createPasswordResetToken(email) {
     const user = await User.findOne({ email });
