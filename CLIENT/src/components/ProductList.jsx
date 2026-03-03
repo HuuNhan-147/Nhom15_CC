@@ -1,3 +1,4 @@
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 const API_BASE_CANDIDATES = Array.from(
@@ -79,7 +80,134 @@ const fetchJsonWithFallback = async (path, queryParams = {}) => {
   throw lastError || new Error("Không thể kết nối API sản phẩm");
 };
 
+const getProductId = (product) => product?._id || product?.id;
+const getProductImage = (product) =>
+  product?.image || product?.images?.[0] || FALLBACK_IMAGE;
+const getReviewsCount = (product) =>
+  Array.isArray(product?.reviews)
+    ? product.reviews.length
+    : Number(product?.reviews) || 0;
+const formatPrice = (price) =>
+  `${Number(price || 0).toLocaleString("vi-VN")} VND`;
+
 function ProductList() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [searchInput, setSearchInput] = useState("");
+  const [categoryInput, setCategoryInput] = useState("");
+  const [minPriceInput, setMinPriceInput] = useState("");
+  const [maxPriceInput, setMaxPriceInput] = useState("");
+
+  const [appliedFilters, setAppliedFilters] = useState({
+    search: "",
+    category: "",
+    minPrice: "",
+    maxPrice: "",
+    status: "available",
+  });
+
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 12,
+    total: 0,
+    pages: 1,
+  });
+
+  const categories = useMemo(() => {
+    const unique = new Set(
+      products.map((item) => item?.category).filter(Boolean),
+    );
+    return Array.from(unique).sort((a, b) => a.localeCompare(b));
+  }, [products]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadProducts = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const response = await fetchJsonWithFallback("/products", {
+          ...appliedFilters,
+          page: pagination.page,
+          limit: pagination.limit,
+        });
+
+        const { products: items, pagination: paging } =
+          normalizeProductListResponse(response);
+
+        if (isCancelled) {
+          return;
+        }
+
+        setProducts(Array.isArray(items) ? items : []);
+
+        if (paging && typeof paging === "object") {
+          setPagination((prev) => ({
+            ...prev,
+            page: Number(paging.page) || prev.page,
+            limit: Number(paging.limit) || prev.limit,
+            total: Number(paging.total) || 0,
+            pages: Number(paging.pages) || 1,
+          }));
+        } else {
+          setPagination((prev) => ({
+            ...prev,
+            total: Array.isArray(items) ? items.length : 0,
+            pages: 1,
+          }));
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setProducts([]);
+          setError(err.message || "Không thể tải danh sách sản phẩm");
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadProducts();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [appliedFilters, pagination.page, pagination.limit]);
+
+  const applyFilters = (event) => {
+    event.preventDefault();
+    setPagination((prev) => ({ ...prev, page: 1 }));
+    setAppliedFilters({
+      search: searchInput.trim(),
+      category: categoryInput,
+      minPrice: minPriceInput,
+      maxPrice: maxPriceInput,
+      status: "available",
+    });
+  };
+
+  const resetFilters = () => {
+    setSearchInput("");
+    setCategoryInput("");
+    setMinPriceInput("");
+    setMaxPriceInput("");
+    setPagination((prev) => ({ ...prev, page: 1 }));
+    setAppliedFilters({
+      search: "",
+      category: "",
+      minPrice: "",
+      maxPrice: "",
+      status: "available",
+    });
+  };
+
+  const currentPage = Number(pagination.page) || 1;
+  const totalPages = Number(pagination.pages) || 1;
   return (
     <div className="py-5">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">
