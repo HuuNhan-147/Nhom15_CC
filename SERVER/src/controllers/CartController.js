@@ -1,7 +1,6 @@
 const cartService = require("../services/CartService");
 
 class CartController {
-  // Lấy giỏ hàng
   async getCart(req, res) {
     try {
       const userId = req.params.userId;
@@ -20,7 +19,6 @@ class CartController {
     }
   }
 
-  // Thêm vào giỏ hàng
   async addToCart(req, res) {
     try {
       const userId = req.params.userId;
@@ -48,7 +46,6 @@ class CartController {
     }
   }
 
-  // Cập nhật số lượng
   async updateCartItem(req, res) {
     try {
       const userId = req.params.userId;
@@ -57,7 +54,7 @@ class CartController {
       if (!productId || quantity === undefined) {
         return res.status(400).json({
           success: false,
-          message: "Vui lòng nhập productId và quantity",
+          message: "Vui lòng nhập mã sản phẩm và số lượng",
         });
       }
 
@@ -80,7 +77,6 @@ class CartController {
     }
   }
 
-  // Xóa sản phẩm khỏi giỏ hàng
   async removeFromCart(req, res) {
     try {
       const userId = req.params.userId;
@@ -101,7 +97,6 @@ class CartController {
     }
   }
 
-  // Xóa tất cả giỏ hàng
   async clearCart(req, res) {
     try {
       const userId = req.params.userId;
