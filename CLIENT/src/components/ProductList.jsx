@@ -1,5 +1,19 @@
 import { Link } from "react-router-dom";
 
+const API_BASE_CANDIDATES = Array.from(
+  new Set(
+    [
+      process.env.REACT_APP_API_URL,
+      "http://localhost:5000/api/v1",
+      "http://localhost:5000/api",
+      "/api/v1",
+      "/api",
+    ]
+      .filter(Boolean)
+      .map((base) => base.replace(/\/+$/, "")),
+  ),
+);
+
 function ProductList() {
   return (
     <div className="py-5">
