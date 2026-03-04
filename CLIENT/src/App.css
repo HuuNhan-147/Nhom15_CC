@@ -2,18 +2,50 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fb 0%, #f0f4f8 100%);
 }
 
 .main-content {
   flex: 1;
   padding: 20px;
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
   width: 100%;
 }
 
+/* Gradient backgrounds */
+.gradient-primary {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+}
+
+.gradient-accent {
+  background: linear-gradient(135deg, #EC4899 0%, #DB2777 100%);
+}
+
+/* Glassmorphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Smooth animations */
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  }
+}
+
+.glow {
+  animation: glow 3s ease-in-out infinite;
+}
+
+/* Responsive media queries */
 @media (max-width: 768px) {
   .main-content {
-    padding: 10px;
+    padding: 15px;
   }
 }
