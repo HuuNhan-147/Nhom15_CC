@@ -48,80 +48,100 @@ function Register() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-96 py-10">
-      <div className="bg-white rounded-lg shadow-md p-10 w-full max-w-sm">
-        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">Đăng ký</h1>
-        
-        {error && (
-          <div className="mb-5 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-to-br from-blue-50 via-white to-pink-50">
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          {/* Header with gradient */}
+          <div className="bg-gradient-to-r from-accent to-pink-600 px-8 py-12 text-center text-white">
+            <div className="text-5xl mb-4">✨</div>
+            <h1 className="text-3xl font-bold mb-2">Đăng ký</h1>
+            <p className="text-pink-100">Tham gia ShopHub ngay hôm nay</p>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-5">
-            <label htmlFor="fullName" className="block font-bold text-gray-800 mb-2">Họ và tên:</label>
-            <input
-              type="text"
-              id="fullName"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-primary focus:ring-2 focus:ring-green-300"
-              placeholder="Họ và tên"
-              required
-            />
+          {/* Form content */}
+          <div className="p-8">
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg flex items-start gap-3">
+                <span className="text-2xl">⚠️</span>
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label htmlFor="fullName" className="block font-bold text-secondary mb-2">👤 Họ và tên</label>
+                <input
+                  type="text"
+                  id="fullName"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-accent focus:ring-2 focus:ring-pink-200 transition-all text-lg"
+                  placeholder="Nhập họ và tên"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="email" className="block font-bold text-secondary mb-2">📧 Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-accent focus:ring-2 focus:ring-pink-200 transition-all text-lg"
+                  placeholder="Nhập email của bạn"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="block font-bold text-secondary mb-2">🔒 Mật khẩu</label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-accent focus:ring-2 focus:ring-pink-200 transition-all text-lg"
+                  placeholder="Mật khẩu (tối thiểu 6 ký tự)"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="confirmPassword" className="block font-bold text-secondary mb-2">✓ Xác nhận mật khẩu</label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-accent focus:ring-2 focus:ring-pink-200 transition-all text-lg"
+                  placeholder="Nhập lại mật khẩu"
+                  required
+                />
+              </div>
+              <button 
+                type="submit" 
+                className="w-full py-4 bg-gradient-to-r from-accent to-pink-600 text-white rounded-lg font-bold text-lg hover:shadow-lg transition-all duration-300 hover:scale-105 mt-8"
+                disabled={loading}
+              >
+                {loading ? '⏳ Đang đăng ký...' : '🎉 Đăng ký'}
+              </button>
+            </form>
+
+            {/* Divider */}
+            <div className="my-6 flex items-center gap-3">
+              <div className="flex-1 h-px bg-gray-300"></div>
+              <span className="text-gray-500 text-sm">hoặc</span>
+              <div className="flex-1 h-px bg-gray-300"></div>
+            </div>
+
+            {/* Login link */}
+            <p className="text-center text-gray-600">
+              Đã có tài khoản? <Link to="/login" className="text-accent font-bold hover:text-pink-700 transition-colors">Đăng nhập ngay 👉</Link>
+            </p>
           </div>
-          <div className="mb-5">
-            <label htmlFor="email" className="block font-bold text-gray-800 mb-2">Email:</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-primary focus:ring-2 focus:ring-green-300"
-              placeholder="Email của bạn"
-              required
-            />
-          </div>
-          <div className="mb-5">
-            <label htmlFor="password" className="block font-bold text-gray-800 mb-2">Mật khẩu:</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-primary focus:ring-2 focus:ring-green-300"
-              placeholder="Mật khẩu (tối thiểu 6 ký tự)"
-              required
-            />
-          </div>
-          <div className="mb-5">
-            <label htmlFor="confirmPassword" className="block font-bold text-gray-800 mb-2">Xác nhận mật khẩu:</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-primary focus:ring-2 focus:ring-green-300"
-              placeholder="Nhập lại mật khẩu"
-              required
-            />
-          </div>
-          <button 
-            type="submit" 
-            className="btn btn-primary btn-block w-full mb-5"
-            disabled={loading}
-          >
-            {loading ? 'Đang đăng ký...' : 'Đăng ký'}
-          </button>
-        </form>
-        <p className="text-center text-gray-600">
-          Đã có tài khoản? <Link to="/login" className="text-primary font-bold hover:underline">Đăng nhập ngay</Link>
-        </p>
+        </div>
       </div>
     </div>
   );

@@ -45,6 +45,11 @@ const userSchema = new mongoose.Schema(
       default: "active",
     },
     avatar: String,
+    // reset password token and expiry
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
+    // list of valid refresh tokens
+    refreshTokens: [String],
     createdAt: {
       type: Date,
       default: Date.now,

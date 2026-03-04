@@ -2,6 +2,17 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const config = require("../config/config");
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
+
+// setup mail transporter
+const transporter = nodemailer.createTransport({
+  service: config.email.service,
+  auth: {
+    user: config.email.user,
+    pass: config.email.pass,
+  },
+});
 
 class UserService {
   // Tạo người dùng mới
@@ -48,8 +59,19 @@ class UserService {
       const token = jwt.sign(
         { userId: user._id, email: user.email, role: user.role },
         config.jwt.secret,
-        { expiresIn: "7d" },
+        { expiresIn: config.jwt.expiresIn },
       );
+      // generate refresh token
+      const refreshToken = jwt.sign(
+        { userId: user._id },
+        config.refreshToken.secret,
+        { expiresIn: config.refreshToken.expiresIn },
+      );
+
+      // store refresh token in user document
+      user.refreshTokens = user.refreshTokens || [];
+      user.refreshTokens.push(refreshToken);
+      await user.save();
 
       const userResponse = user.toObject();
       delete userResponse.password;
@@ -57,10 +79,99 @@ class UserService {
       return {
         user: userResponse,
         token,
+        refreshToken,
       };
     } catch (error) {
       throw new Error(`Lỗi đăng nhập: ${error.message}`);
     }
+  }
+
+  // ----- refresh token helpers -----
+  async generateRefreshToken(userId) {
+    const refreshToken = jwt.sign({ userId }, config.refreshToken.secret, {
+      expiresIn: config.refreshToken.expiresIn,
+    });
+    const user = await User.findById(userId);
+    user.refreshTokens = user.refreshTokens || [];
+    user.refreshTokens.push(refreshToken);
+    await user.save();
+    return refreshToken;
+  }
+
+  async refreshAccessToken(refreshToken) {
+    try {
+      const payload = jwt.verify(refreshToken, config.refreshToken.secret);
+      const user = await User.findById(payload.userId);
+      if (!user || !user.refreshTokens.includes(refreshToken)) {
+        throw new Error("Refresh token không hợp lệ");
+      }
+      const newToken = jwt.sign(
+        { userId: user._id, email: user.email, role: user.role },
+        config.jwt.secret,
+        { expiresIn: config.jwt.expiresIn },
+      );
+      return newToken;
+    } catch (err) {
+      throw new Error("Refresh token không hợp lệ");
+    }
+  }
+
+  async revokeRefreshToken(refreshToken) {
+    try {
+      const payload = jwt.verify(refreshToken, config.refreshToken.secret);
+      const user = await User.findById(payload.userId);
+      if (user) {
+        user.refreshTokens = (user.refreshTokens || []).filter(t => t !== refreshToken);
+        await user.save();
+      }
+    } catch (err) {
+      // ignore invalid token
+    }
+  }
+
+  // ----- password reset helpers -----
+  async createPasswordResetToken(email) {
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new Error("Email không tồn tại");
+    }
+    const token = crypto.randomBytes(20).toString("hex");
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    const resetUrl = `${config.clientUrl || "http://localhost:3000"}/reset-password/${token}`;
+    const mailOptions = {
+      to: user.email,
+      from: config.email.from,
+      subject: "Yêu cầu đặt lại mật khẩu",
+      text: `Bạn nhận được email vì đã yêu cầu đặt lại mật khẩu.
+
+Vui lòng click vào link sau hoặc dán vào trình duyệt:
+
+${resetUrl}
+
+Nếu bạn không yêu cầu, hãy bỏ qua email này.
+`,
+    };
+
+    await transporter.sendMail(mailOptions);
+    return { message: "Email đặt lại mật khẩu đã được gửi" };
+  }
+
+  async resetPassword(token, newPassword) {
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+    if (!user) {
+      throw new Error("Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn");
+    }
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+    return { message: "Mật khẩu đã được đặt lại" };
   }
 
   // Lấy tất cả người dùng
