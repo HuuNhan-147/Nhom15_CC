@@ -4,11 +4,19 @@
 
 @layer components {
   .btn {
-    @apply px-6 py-3 rounded-md font-medium transition-colors duration-300 inline-block;
+    @apply px-6 py-3 rounded-lg font-bold transition-all duration-300 inline-block shadow-md hover:shadow-lg hover:scale-105;
   }
 
   .btn-primary {
-    @apply bg-primary text-white hover:bg-green-600;
+    @apply bg-primary text-white hover:bg-blue-700;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-white hover:bg-slate-800;
+  }
+
+  .btn-accent {
+    @apply bg-accent text-white hover:bg-pink-600;
   }
 
   .btn-large {
@@ -18,4 +26,41 @@
   .btn-block {
     @apply w-full;
   }
+
+  .card {
+    @apply bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply hover:scale-105 hover:-translate-y-2 cursor-pointer;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  @apply transition-all duration-300;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3B82F6;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1E40AF;
 }
